@@ -1,7 +1,7 @@
 use iced::mouse;
 use iced::widget::canvas::Geometry;
 use iced::widget::{canvas, image};
-use iced::keyboard;
+use iced::{keyboard, window};
 use iced::{
     Subscription, Element, Rectangle, Fill, Renderer,
     Theme, Vector, Point, Color, Size
@@ -100,8 +100,13 @@ impl State {
         }
     }
     pub fn update(&mut self) {
+        self.update_bounds();
         self.spaceship.calculate_position();
         self.spaceship.cache.clear();
+    }
+    pub fn update_bounds(&mut self) {
+        self.spaceship.bounds.width = window::Settings::default().size.width;  
+        self.spaceship.bounds.height = window::Settings::default().size.height;
     }
 }
 
@@ -150,6 +155,7 @@ struct Spaceship {
     position_y : f32,
     speed : f32,
     size : Size,
+    bounds : Rectangle,
 }
 
 impl Spaceship {
@@ -164,18 +170,19 @@ impl Spaceship {
             position_y : 0.0,
             speed : 1.0,
             size : Size{width: 100.0, height: 100.0},
+            bounds : Rectangle::default(),
         }
     }
+
     pub fn calculate_position(&mut self) {
-        println!("x {}, y {}", self.position_x, self.position_y);
         if self.speed > 0.0 {
             self.position_x += f32::sin(self.rotation);
             self.position_y -= f32::cos(self.rotation);
 
-            if self.position_x > 1000.0 {
+            if f32::abs(self.position_x) > self.bounds.size().width {
                 self.flip_position(Dimension::X);
             }
-            if self.position_y > 1000.0 {
+            if f32::abs(self.position_y) > self.bounds.size().height - 200.0 {
                 self.flip_position(Dimension::Y);
             }
         } else {
@@ -185,8 +192,20 @@ impl Spaceship {
     }
     pub fn flip_position(&mut self, d : Dimension) {
         match d {
-            Dimension::X => self.position_x = 0.0,
-            Dimension::Y => self.position_y = 0.0,
+            Dimension::X => {
+                if self.position_x > 0.0 {
+                    self.position_x -= 2.0*self.bounds.size().width;
+                } else {
+                    self.position_x += 2.0*self.bounds.size().width;
+                }
+            },
+            Dimension::Y => {
+                if self.position_y > 0.0 {
+                    self.position_y -= 2.0*(self.bounds.size().height - 200.0);
+                } else {
+                    self.position_y += 2.0*(self.bounds.size().height - 200.0);
+                }
+            },
         }
     }
     pub fn speed_update(&mut self, val: f32) {
